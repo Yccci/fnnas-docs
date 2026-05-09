@@ -17,6 +17,8 @@
 - [💻 【实战】Docker 应用构建](docs/core-concepts/docker.md)
 - [📚 【基础】环境变量](docs/core-concepts/environment-variables.md)
 - [📚 【基础】架构概述](docs/core-concepts/framework.md)
+- [🔥 【进阶】登录认证](docs/core-concepts/gateway-authentication.md)
+- [🔥 【进阶】统一网关注册](docs/core-concepts/gateway-registration.md)
 - [📜 【规范】图标 Icon](docs/core-concepts/icon.md)
 - [📚 【基础】Manifest](docs/core-concepts/manifest.md)
 - [🔥 【进阶】中间件服务](docs/core-concepts/middleware.md)
@@ -32,6 +34,7 @@
 - [🧪　测试应用](docs/quick-started/test-application.md)
 - [20251216 更新日志](docs/update-log/20251216.md)
 - [20251231 更新日志](docs/update-log/20251231.md)
+- [20260509 更新日志](docs/update-log/20260509.md)
 
 ---
 
@@ -62,11 +65,13 @@
 - [📚 【基础】应用资源](../core-concepts/resource.md): 声明和定义应用的能力
 - [📚 【基础】应用入口](../core-concepts/app-entry.md): 声明和定义用户访问应用的入口
 - [📚 【基础】用户向导](../core-concepts/wizard.md): 为用户设计安装和卸载等向导界面
+- [🔥 【进阶】统一网关注册](../core-concepts/gateway-registration.md): 通过统一网关注册应用访问入口
+- [🔥 【进阶】登录认证](../core-concepts/gateway-authentication.md): 统一网关的登录态校验和用户信息透传机制
 - [🔥 【进阶】应用依赖关系](../core-concepts/dependency.md): 了解应用的依赖逻辑
-- [🔥 【进阶】运行时环境](../core-concepts/runtime.md): 如何使用运行时环境
 - [🔥 【进阶】中间件服务](../core-concepts/middleware.md): 如何使用中间件服务
-- [💻 【实战】Docker 应用构建](../core-concepts/docker.md): 如何创建一个 Docker 应用
+- [🔥 【进阶】运行时环境](../core-concepts/runtime.md): 如何使用运行时环境
 - [💻 【实战】Native 应用构建](../core-concepts/native.md): 如何创建飞牛fnOS原生应用
+- [💻 【实战】Docker 应用构建](../core-concepts/docker.md): 如何创建一个 Docker 应用
 - [📜 【规范】图标 Icon](../core-concepts/icon.md): 标准设计规范
 
 ---
@@ -100,6 +105,7 @@
 
 - [20251216 更新日志](../update-log/20251216.md): - 修复暗色主题模式下首页及Footer显示不友好的问题
 - [20251231 更新日志](../update-log/20251231.md): - 文档加入New! 及 Update! 等徽标样式，方便快速查阅新增特性
+- [20260509 更新日志](../update-log/20260509.md): - 开发指南 >【进阶】新增 统一网关注册 文档，介绍应用在 fnOS V1.1.31 及以上版本接入统一网关的方式
 
 ---
 
@@ -656,8 +662,8 @@ install_dep_apps=depB:depC
 
 ---
 
-- 上一页: [📚 【基础】用户向导](wizard.md)
-- 下一页: [🔥 【进阶】运行时环境](runtime.md)
+- 上一页: [🔥 【进阶】登录认证](gateway-authentication.md)
+- 下一页: [🔥 【进阶】中间件服务](middleware.md)
 
 ---
 
@@ -776,8 +782,8 @@ esac%
 
 ---
 
-- 上一页: [🔥 【进阶】中间件服务](middleware.md)
-- 下一页: [💻 【实战】Native 应用构建](native.md)
+- 上一页: [💻 【实战】Native 应用构建](native.md)
+- 下一页: [📜 【规范】图标 Icon](icon.md)
 
 ---
 
@@ -1197,6 +1203,242 @@ esac
 
 ---
 
+## 🔥 【进阶】登录认证
+
+应用通过统一网关注册后，用户访问时，网关会负责校验用户登录态，并将当前用户信息透传给应用。
+
+> [!WARNING]
+> 登录认证能力需要 fnOS **V1.1.31** 及以上版本支持。
+
+## 认证规则
+
+默认情况下，用户访问经过统一网关的业务请求需要携带有效的系统登录态。统一网关认证通过后，请求才会转发到应用。认证失败的请求不会进入应用服务。
+
+> [!WARNING]
+> 统一网关只能确认用户已经登录。应用仍然需要根据自己的业务规则判断用户是否有权限访问具体数据或执行具体操作。
+
+## 用户信息 Header
+
+认证通过后，网关会在转发请求中增加以下 Header：
+
+| Header | 说明 | 示例 |
+| --- | --- | --- |
+| `X-Trim-Uid` | 当前登录用户的 UID | 1000 |
+| `X-Trim-Isadmin` | 当前用户是否为管理员 | true/false |
+| `X-Trim-Username` | 当前登录用户名 | admin |
+
+应用可以使用这些 Header 识别当前用户。
+
+**转发到应用的请求示例**
+
+```http
+GET /app/trim.app/list HTTP/1.1
+X-Trim-Uid: 1000
+X-Trim-Isadmin: true
+X-Trim-Username: admin
+```
+
+## 应用侧示例
+
+**Node.js 示例**
+
+```js
+function getGatewayUser(req) {
+  return {
+    uid: req.headers["x-trim-uid"],
+    isAdmin: req.headers["x-trim-isadmin"] === "true",
+    username: req.headers["x-trim-username"]
+  };
+}
+```
+
+应用可以基于 `uid`、`isAdmin` 和 `username` 做业务权限判断。
+
+## 权限判断
+
+应用应继续保留自己的权限判断逻辑。常见场景包括：
+
+- 用户数据隔离时，对应用户的请求只能访问自己的数据
+- 提供仅管理员才能访问的管理接口
+- 高风险操作需要单独增加校验权限
+
+## WebSocket
+
+WebSocket 服务也应通过统一网关访问。连接建立时，网关会先校验登录态，再将用户信息透传给应用。
+
+应用建立连接后，应将连接与 `X-Trim-Uid` 绑定，后续消息不要信任客户端主动上报的用户 ID。
+
+## 静态文件
+
+如果应用通过统一网关提供静态文件访问，仍需要在应用侧做好路径限制。
+
+建议：
+
+- 对请求路径做标准化处理
+- 禁止 .. 访问上级目录，避免目录穿透。
+- 限制可访问目录范围
+- 不暴露配置文件、密钥、数据库等敏感文件
+- 对可下载文件类型做白名单控制
+
+## 不鉴权接口
+
+公开资源、OAuth 回调等特殊接口如果确实不需要登录态，应单独设计路径，并保持最小暴露范围。
+
+不鉴权接口建议满足以下要求：
+
+- 只开放必要路径
+- 只允许必要 HTTP 方法
+- 不返回用户敏感信息
+- 不提供写入、删除等高风险能力
+
+---
+
+- 上一页: [🔥 【进阶】统一网关注册](gateway-registration.md)
+- 下一页: [🔥 【进阶】应用依赖关系](dependency.md)
+
+---
+
+## 🔥 【进阶】统一网关注册
+
+统一网关用于为应用提供稳定的访问入口。应用接入后，无需新增端口监听，用户可以通过系统地址和应用路径访问服务。
+
+例如当前系统 Web UI 访问地址是 `http://192.168.1.10:5666/`，则应用访问地址可以是 `http://192.168.1.10:5666/app/{appname}`
+
+> [!WARNING]
+> 统一网关注册能力需要 fnOS **V1.1.31** 及以上版本支持。
+
+> [!NOTE]
+> 统一网关会在转发请求前完成登录态校验，自动拒绝非法访问。HTTP 和 WebSocket 请求均可通过统一网关接入。
+
+## 接入方式
+
+在应用入口配置 `app/ui/config` 中声明 `gatewayPrefix` 和 `gatewaySocket` 即可接入统一网关。
+
+满足以下条件时，系统会为该入口注册网关路由：
+
+- gatewayPrefix 不为空且符合格式规范
+- gatewaySocket 不为空
+
+## 字段说明
+
+- `gatewayPrefix` - 应用注册到网关的访问前缀
+    - 格式为 /app/{appname}/{customPath} 或 /app/{appname}
+    - {appname}为应用包名
+    - {customPath} 为自定义路径，非必须，推荐使用简短、稳定的业务路径
+    - 需确认本字段未包含 .，如有请使用 - 替换
+- `gatewaySocket` - 应用接收网关请求的 Socket 文件名
+    - 只填写文件名，例如 app.sock
+    - 不需要填写完整路径
+    - Socket 文件应放在应用 target 目录下，可使用环境变量 ${TRIM_APPDEST} 获取该路径
+
+## 配置示例
+
+**app/ui/config**
+
+```json
+{
+    ".url": {
+        "trim.app": {
+            "title": "应用A",
+            "desc": "应用A",
+            "icon": "images/icon_{0}.png",
+            "type": "iframe",
+            "protocol": "",
+            "gatewaySocket": "app.sock",
+            "gatewayPrefix": "/app/trim-app",
+            "url": "/app/trim-app",
+            "allUsers": true
+        }
+    }
+}
+```
+
+以上配置会注册访问入口：
+
+```text
+/app/trim-app
+```
+
+匹配该前缀的请求会转发到：
+
+```text
+/var/apps/trim.app/target/app.sock
+```
+
+## WebSocket 使用说明
+
+WebSocket 服务可以复用同一个 `gatewayPrefix` 和 `gatewaySocket`。网关会将匹配前缀的 WebSocket Upgrade 请求转发到应用 Socket，应用按普通 WebSocket 服务处理连接即可。
+
+建议将 WebSocket 路由放在应用网关前缀下的固定子路径中，例如：
+
+```text
+/app/trim-app/ws
+```
+
+### WebSocket 配置示例
+
+**app/ui/config**
+
+```json
+{
+    ".url": {
+        "trim.chat": {
+            "title": "聊天应用",
+            "desc": "聊天应用",
+            "icon": "images/icon_{0}.png",
+            "type": "iframe",
+            "protocol": "",
+            "gatewaySocket": "chat.sock",
+            "gatewayPrefix": "/app/trim-chat",
+            "url": "/app/trim-chat",
+            "allUsers": true
+        }
+    }
+}
+```
+
+以上配置中：
+
+- HTTP 访问入口为 /app/trim-chat
+- WebSocket 建议使用 /app/trim-chat/ws
+- 请求会转发到 /var/apps/trim.chat/target/chat.sock
+
+### 前端连接示例
+
+前端建议根据当前页面协议自动选择 `ws` 或 `wss`：
+
+**WebSocket 连接示例**
+
+```js
+const wsProtocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+const wsUrl = `${wsProtocol}//${window.location.host}/app/trim-chat/ws`;
+
+const socket = new WebSocket(wsUrl);
+
+socket.onopen = () => {
+  socket.send(JSON.stringify({ type: "ping" }));
+};
+
+socket.onmessage = (event) => {
+  const message = JSON.parse(event.data);
+  console.log(message);
+};
+```
+
+### 应用侧要求
+
+- WebSocket 服务应监听 gatewaySocket 对应的 Unix Socket。
+- WebSocket 路由建议固定为网关前缀下的子路径，例如 /ws。
+- 不要使用客户端传入的用户 ID 判断身份，应使用登录认证中说明的 X-Trim-* Header。
+- 建立连接后，建议将连接与当前用户 UID 绑定，后续消息按该用户身份处理。
+
+---
+
+- 上一页: [📚 【基础】用户向导](wizard.md)
+- 下一页: [🔥 【进阶】登录认证](gateway-authentication.md)
+
+---
+
 ## 📜 【规范】图标 Icon
 
 ## 标准设计规范
@@ -1214,7 +1456,7 @@ esac
 
 ---
 
-- 上一页: [💻 【实战】Native 应用构建](native.md)
+- 上一页: [💻 【实战】Docker 应用构建](docker.md)
 - 下一页: [🔧　CLI 开发工具](../category/cli-开发工具.md)
 
 ---
@@ -1243,9 +1485,7 @@ manifest 文件就像是应用的"身份证"，它告诉飞牛 fnOS 系统您的
 - `platform` - 架构类型，缺省时默认值： x86，（⚠️注意：不支持多个值填写）New!V1.1.8+
     - 声明为 x86 时，应用仅支持 x86 架构
     - 声明为 arm 时，应用仅支持 arm 架构
-    - 声明为 loongarch 时，应用仅支持 loongarch 架构（当前暂未支持）
-    - 声明为 risc-v 时，应用仅支持 risc-v 架构（当前暂未支持）
-    - 声明为 all 时，表示应用支持所有架构，不区分平台，所有平台都可以下载安装。例如Docker应用。（即将支持）
+    - 声明为 all 时，表示应用支持所有架构，不区分平台，所有平台都可以下载安装。例如Docker应用。
 - `source` - 应用来源，固定为 thirdparty
 
 ## 开发者信息
@@ -1557,8 +1797,8 @@ if __name__ == "__main__":
 
 ---
 
-- 上一页: [🔥 【进阶】运行时环境](runtime.md)
-- 下一页: [💻 【实战】Docker 应用构建](docker.md)
+- 上一页: [🔥 【进阶】应用依赖关系](dependency.md)
+- 下一页: [🔥 【进阶】运行时环境](runtime.md)
 
 ---
 
@@ -1917,8 +2157,8 @@ run(`fnpack build -d ${packDir}`)
 
 ---
 
-- 上一页: [💻 【实战】Docker 应用构建](docker.md)
-- 下一页: [📜 【规范】图标 Icon](icon.md)
+- 上一页: [🔥 【进阶】运行时环境](runtime.md)
+- 下一页: [💻 【实战】Docker 应用构建](docker.md)
 
 ---
 
@@ -2322,8 +2562,8 @@ java --version
 
 ---
 
-- 上一页: [🔥 【进阶】应用依赖关系](dependency.md)
-- 下一页: [🔥 【进阶】中间件服务](middleware.md)
+- 上一页: [🔥 【进阶】中间件服务](middleware.md)
+- 下一页: [💻 【实战】Native 应用构建](native.md)
 
 ---
 
@@ -2796,7 +3036,7 @@ fi
 ---
 
 - 上一页: [📚 【基础】应用入口](app-entry.md)
-- 下一页: [🔥 【进阶】应用依赖关系](dependency.md)
+- 下一页: [🔥 【进阶】统一网关注册](gateway-registration.md)
 
 ---
 
@@ -3517,3 +3757,15 @@ appcenter-cli manual-install enable
 ---
 
 - 上一页: [20251216 更新日志](20251216.md)
+- 下一页: [20260509 更新日志](20260509.md)
+
+---
+
+## 20260509 更新日志
+
+- 开发指南 >【进阶】新增 统一网关注册 文档，介绍应用在 fnOS V1.1.31 及以上版本接入统一网关的方式
+- 开发指南 >【进阶】新增 登录认证 文档，介绍 fnOS V1.1.31 及以上版本的统一网关登录态校验和用户信息 Header 透传机制
+
+---
+
+- 上一页: [20251231 更新日志](20251231.md)

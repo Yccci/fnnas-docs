@@ -469,4 +469,4 @@ fi
 ---
 
 - 上一页: [📚 【基础】应用入口](app-entry.md)
-- 下一页: [🔥 【进阶】应用依赖关系](dependency.md)
+- 下一页: [🔥 【进阶】统一网关注册](gateway-registration.md)

@@ -25,6 +25,8 @@
 - [💻 【实战】Docker 应用构建](core-concepts/docker.md)
 - [📚 【基础】环境变量](core-concepts/environment-variables.md)
 - [📚 【基础】架构概述](core-concepts/framework.md)
+- [🔥 【进阶】登录认证](core-concepts/gateway-authentication.md)
+- [🔥 【进阶】统一网关注册](core-concepts/gateway-registration.md)
 - [📜 【规范】图标 Icon](core-concepts/icon.md)
 - [📚 【基础】Manifest](core-concepts/manifest.md)
 - [🔥 【进阶】中间件服务](core-concepts/middleware.md)
@@ -49,3 +51,4 @@
 
 - [20251216 更新日志](update-log/20251216.md)
 - [20251231 更新日志](update-log/20251231.md)
+- [20260509 更新日志](update-log/20260509.md)

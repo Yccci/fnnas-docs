@@ -204,5 +204,5 @@ if __name__ == "__main__":
 
 ---
 
-- 上一页: [🔥 【进阶】运行时环境](runtime.md)
-- 下一页: [💻 【实战】Docker 应用构建](docker.md)
+- 上一页: [🔥 【进阶】应用依赖关系](dependency.md)
+- 下一页: [🔥 【进阶】运行时环境](runtime.md)

@@ -48,5 +48,5 @@ install_dep_apps=depB:depC
 
 ---
 
-- 上一页: [📚 【基础】用户向导](wizard.md)
-- 下一页: [🔥 【进阶】运行时环境](runtime.md)
+- 上一页: [🔥 【进阶】登录认证](gateway-authentication.md)
+- 下一页: [🔥 【进阶】中间件服务](middleware.md)
