@@ -22,7 +22,7 @@ ASSETS_ROOT = REPO_ROOT / "assets"
 ALL_DOCS_PATH = REPO_ROOT / "ALL_DOCS.md"
 DOCS_INDEX_PATH = DOCS_ROOT / "README.md"
 SUMMARY_PATH = REPO_ROOT / "sync-summary.json"
-USER_AGENT = "fnnas-docs-sync/1.0 (+https://github.com/your-name/your-repo)"
+USER_AGENT = "fnnas-docs-sync/1.0 (+https://github.com/Yccci/fnnas-docs)"
 
 SECTION_LABELS = {
     "guide": "入口",
