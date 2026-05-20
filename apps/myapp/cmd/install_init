@@ -1,0 +1,4 @@
+#!/bin/bash
+# 解压安装包之前执行：环境检查、依赖准备等
+# 失败时把原因写入 $TRIM_TEMP_LOGFILE 再 exit 1
+exit 0

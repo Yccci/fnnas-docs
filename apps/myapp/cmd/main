@@ -1,0 +1,41 @@
+#!/bin/bash
+# 应用运行状态管理脚本
+# 系统会以 start / stop / status 参数调用本脚本
+#   status: 运行中返回 0，未运行返回 3
+#   start/stop: 成功返回 0，失败把错误信息写入 $TRIM_TEMP_LOGFILE 后返回 1
+
+set -u
+
+case "${1:-}" in
+start)
+    if [ ! -f "${TRIM_PKGETC:-/var/apps/${appname:-myapp}/etc}/config.conf" ]; then
+        echo "配置文件不存在，应用启动失败！" > "${TRIM_TEMP_LOGFILE:-/dev/stderr}"
+        exit 1
+    fi
+
+    # TODO: 在此处启动应用，例如：
+    # cd "$TRIM_APPDEST"
+    # ./myapp --config "$TRIM_PKGETC/config.conf" \
+    #         --data "$TRIM_PKGVAR" \
+    #         --port "$TRIM_SERVICE_PORT" \
+    #         --log "$TRIM_TEMP_LOGFILE" &
+    exit 0
+    ;;
+stop)
+    # TODO: 在此处优雅停止应用，例如：
+    # pkill -f "myapp.*$TRIM_SERVICE_PORT"
+    exit 0
+    ;;
+status)
+    # TODO: 在此处检测应用进程是否存活
+    # if pgrep -f "myapp.*$TRIM_SERVICE_PORT" > /dev/null; then
+    #     exit 0
+    # else
+    #     exit 3
+    # fi
+    exit 3
+    ;;
+*)
+    exit 1
+    ;;
+esac

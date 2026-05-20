@@ -1,0 +1,20 @@
+appname=myapp
+version=0.1.0
+display_name=我的应用
+desc=飞牛 fnOS 应用脚手架，按需修改 manifest 后再开发。
+
+platform=all
+source=thirdparty
+
+maintainer=Yccci
+maintainer_url=https://github.com/Yccci
+distributor=Yccci
+distributor_url=https://github.com/Yccci
+
+os_min_version=0.9.0
+
+desktop_uidir=app/ui
+desktop_applaunchname=myapp.main
+
+service_port=8080
+checkport=true

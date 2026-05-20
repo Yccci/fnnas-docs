@@ -1,0 +1,4 @@
+#!/bin/bash
+# 解压安装包之后执行：初始化数据、生成默认配置等
+# 失败时把原因写入 $TRIM_TEMP_LOGFILE 再 exit 1
+exit 0

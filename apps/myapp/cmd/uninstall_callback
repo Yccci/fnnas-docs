@@ -1,0 +1,5 @@
+#!/bin/bash
+# 卸载完成后执行：清理残留资源
+# 注意：系统会自动删除 target/tmp/home/etc，但会保留 var 和 shares
+# 若 wizard/uninstall 让用户选择了"不保留数据"，可在这里清理 var、shares
+exit 0
