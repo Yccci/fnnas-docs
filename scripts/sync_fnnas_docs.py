@@ -5,7 +5,6 @@ import json
 import re
 import shutil
 import sys
-import xml.etree.ElementTree as ET
 from dataclasses import dataclass
 from pathlib import Path
 from urllib.parse import unquote, urljoin, urlparse
@@ -15,7 +14,6 @@ from bs4 import BeautifulSoup, NavigableString, Tag
 
 
 SITE_ROOT = "https://developer.fnnas.com"
-SITEMAP_URL = f"{SITE_ROOT}/sitemap.xml"
 REPO_ROOT = Path(__file__).resolve().parents[1]
 DOCS_ROOT = REPO_ROOT / "docs"
 ASSETS_ROOT = REPO_ROOT / "assets"
@@ -23,15 +21,33 @@ ALL_DOCS_PATH = REPO_ROOT / "ALL_DOCS.md"
 DOCS_INDEX_PATH = DOCS_ROOT / "README.md"
 SUMMARY_PATH = REPO_ROOT / "sync-summary.json"
 USER_AGENT = "fnnas-docs-sync/1.0 (+https://github.com/Yccci/fnnas-docs)"
+ALLOWED_HOSTS = {"developer.fnnas.com", "fnnas.com", "www.fnnas.com"}
+DOC_PREFIXES = ("/docs/", "/api/")
+SEED_ROUTES = ("/docs/guide/", "/api/overview/", "/docs/update-log/")
+MAX_DISCOVERED_ROUTES = 500
+DOC_CONTENT_SELECTOR = ".theme-doc-markdown.markdown, [class*='generatedIndexPage']"
 
 SECTION_LABELS = {
     "guide": "入口",
     "quick-started": "快速开始",
     "core-concepts": "开发指南",
-    "cli": "CLI 开发工具",
-    "update-log": "文档更新日志",
+    "examples": "应用案例",
+    "cli": "开发工具",
+    "update-log": "更新日志",
+    "api": "开放 API",
     "category": "分类页",
 }
+
+SECTION_ORDER = (
+    "guide",
+    "quick-started",
+    "core-concepts",
+    "examples",
+    "cli",
+    "update-log",
+    "api",
+    "category",
+)
 
 ALERT_MAP = {
     "info": "NOTE",
@@ -88,16 +104,21 @@ def collapse_blank_lines(text: str) -> str:
 
 def normalize_doc_route(path_or_url: str) -> str | None:
     parsed = urlparse(path_or_url)
-    path = parsed.path if parsed.scheme else path_or_url
+    if parsed.netloc and parsed.netloc not in ALLOWED_HOSTS:
+        return None
+
+    path = parsed.path if parsed.scheme or parsed.netloc else path_or_url
     path = unquote(path.strip())
 
-    if not path.startswith("/docs/"):
+    if not path.startswith(DOC_PREFIXES):
         return None
 
     if path.endswith("/index.html"):
         path = path[: -len("/index.html")]
+        if not path.endswith("/"):
+            path = f"{path}/"
 
-    if path == "/docs":
+    if path in {"/docs", "/docs/", "/api", "/api/"}:
         return None
 
     if not path.endswith("/"):
@@ -110,15 +131,32 @@ def source_url_for_route(route: str) -> str:
     return f"{SITE_ROOT}{route}"
 
 
+def route_relative(route: str) -> str:
+    relative = route.strip("/")
+    if relative.startswith("docs/"):
+        relative = relative.removeprefix("docs/")
+    return relative
+
+
 def output_path_for_route(route: str) -> Path:
-    relative = route.removeprefix("/docs/").strip("/")
-    return (DOCS_ROOT / Path(relative)).with_suffix(".md")
+    return (DOCS_ROOT / Path(route_relative(route))).with_suffix(".md")
+
+
+def section_key(route: str) -> str:
+    relative = route_relative(route)
+    return relative.split("/", 1)[0]
+
+
+def section_sort_key(name: str) -> tuple[int, str]:
+    if name in SECTION_ORDER:
+        return (SECTION_ORDER.index(name), name)
+    return (len(SECTION_ORDER), name)
 
 
 def title_from_soup(soup: BeautifulSoup) -> str:
     selectors = [
         ".theme-doc-markdown.markdown h1",
-        ".generatedIndexPage_pu2q header h1",
+        "[class*='generatedIndexPage'] header h1",
     ]
     for selector in selectors:
         node = soup.select_one(selector)
@@ -143,30 +181,34 @@ def make_session() -> requests.Session:
     return session
 
 
-def fetch_sitemap_routes(session: requests.Session) -> list[str]:
-    response = session.get(SITEMAP_URL, timeout=30)
-    response.raise_for_status()
-    root = ET.fromstring(response.content.decode("utf-8", errors="replace"))
+def is_doc_page(soup: BeautifulSoup) -> bool:
+    return soup.select_one(DOC_CONTENT_SELECTOR) is not None
+
+
+def meta_refresh_route(soup: BeautifulSoup) -> str | None:
+    for tag in soup.find_all("meta"):
+        http_equiv = str(tag.get("http-equiv") or "")
+        if http_equiv.lower() != "refresh":
+            continue
+        content = str(tag.get("content") or "")
+        match = re.search(r"url\s*=\s*['\"]?([^'\";\s>]+)", content, flags=re.IGNORECASE)
+        if not match:
+            return None
+        return normalize_doc_route(urljoin(SITE_ROOT, match.group(1)))
+    return None
+
+
+def extract_doc_routes(soup: BeautifulSoup, current_url: str) -> list[str]:
     routes: list[str] = []
     seen: set[str] = set()
-
-    for loc in root.findall(".//{*}loc"):
-        if not loc.text:
-            continue
-        route = normalize_doc_route(loc.text)
+    for anchor in soup.select("a[href]"):
+        href = anchor.get("href") or ""
+        route = normalize_doc_route(urljoin(current_url, href))
         if not route or route in seen:
             continue
         seen.add(route)
         routes.append(route)
-
     return routes
-
-
-def load_soup(session: requests.Session, url: str) -> BeautifulSoup:
-    response = session.get(url, timeout=30)
-    response.raise_for_status()
-    text = response.content.decode("utf-8", errors="replace").replace("\x00", "")
-    return BeautifulSoup(text, "lxml")
 
 
 class MarkdownConverter:
@@ -194,7 +236,7 @@ class MarkdownConverter:
                     parts.append(rendered)
             body = collapse_blank_lines("\n\n".join(parts))
         else:
-            generated_index = page.soup.select_one(".generatedIndexPage_pu2q")
+            generated_index = page.soup.select_one("[class*='generatedIndexPage']")
             if not generated_index:
                 raise RuntimeError(f"Could not find content container for {page.source_url}")
             body = self.render_generated_index(
@@ -232,7 +274,7 @@ class MarkdownConverter:
                     parts.append(rendered)
 
         cards: list[str] = []
-        for card in node.select(".docCardListItem_ryg4 a.card"):
+        for card in node.select("[class*='docCardListItem'] a.card"):
             href = self.resolve_href(card.get("href", ""), current_output, current_source_url)
             title_node = card.find(["h2", "h3"])
             desc_node = card.find("p")
@@ -399,8 +441,14 @@ class MarkdownConverter:
             if not isinstance(child, Tag):
                 continue
 
-            if child.name in INLINE_TAGS or child.name == "p":
+            if child.name == "p":
                 text = self.render_inline_children(child, current_output, current_source_url).strip()
+                if text:
+                    inline_parts.append(text)
+                continue
+
+            if child.name in INLINE_TAGS:
+                text = self.render_inline(child, current_output, current_source_url).strip()
                 if text:
                     inline_parts.append(text)
                 continue
@@ -443,7 +491,7 @@ class MarkdownConverter:
                 kind = github_kind
                 break
 
-        content = node.select_one(".admonitionContent_IXtt") or node
+        content = node.select_one("[class*='admonitionContent']") or node
         body_blocks = []
         for child in content.children:
             if isinstance(child, Tag):
@@ -458,7 +506,7 @@ class MarkdownConverter:
         return f"> [!{kind}]\n{self.prefix_lines(body, '> ')}"
 
     def render_code_block(self, node: Tag) -> str:
-        title_node = node.select_one(".codeBlockTitle_QcLQ")
+        title_node = node.select_one("[class*='codeBlockTitle']")
         pre = node.find("pre")
         if not pre:
             return ""
@@ -654,29 +702,70 @@ def prepare_output_directories() -> None:
 
 
 def fetch_pages(session: requests.Session) -> list[Page]:
-    routes = fetch_sitemap_routes(session)
+    queue = list(SEED_ROUTES)
+    queued = set(queue)
+    seen: set[str] = set()
     pages: list[Page] = []
 
-    for route in routes:
+    def enqueue(route: str) -> None:
+        if route in queued or route in seen:
+            return
+        queued.add(route)
+        queue.append(route)
+
+    while queue:
+        route = queue.pop(0)
+        if route in seen:
+            continue
+        seen.add(route)
+        if len(seen) > MAX_DISCOVERED_ROUTES:
+            raise RuntimeError(f"Discovered more than {MAX_DISCOVERED_ROUTES} routes; aborting")
+
         url = source_url_for_route(route)
         log(f"Fetching {url}")
-        soup = load_soup(session, url)
-        title = title_from_soup(soup)
-        pages.append(Page(route=route, source_url=url, title=title, soup=soup))
+        response = session.get(url, timeout=30)
+        if response.status_code == 404:
+            log(f"Skipping missing page {url}")
+            continue
+        response.raise_for_status()
 
+        final_route = normalize_doc_route(response.url)
+        if final_route and final_route != route:
+            enqueue(final_route)
+            continue
+
+        text = response.content.decode("utf-8", errors="replace").replace("\x00", "")
+        soup = BeautifulSoup(text, "lxml")
+        refresh_route = meta_refresh_route(soup)
+        if refresh_route and refresh_route != route:
+            enqueue(refresh_route)
+            continue
+
+        if not is_doc_page(soup):
+            log(f"Skipping {url}: no document content")
+            continue
+
+        for child in extract_doc_routes(soup, response.url):
+            enqueue(child)
+
+        pages.append(Page(route=route, source_url=url, title=title_from_soup(soup), soup=soup))
+
+    if not pages:
+        raise RuntimeError("No documentation pages discovered")
+
+    log(f"Discovered {len(pages)} documentation pages")
     return pages
 
 
 def write_docs_index(pages: list[Page]) -> None:
     grouped: dict[str, list[Page]] = {}
     for page in pages:
-        key = page.route.removeprefix("/docs/").split("/", 1)[0]
-        grouped.setdefault(key, []).append(page)
+        grouped.setdefault(section_key(page.route), []).append(page)
 
     lines = [
         "# 飞牛开发文档镜像",
         "",
-        "该目录由脚本自动从 `https://developer.fnnas.com/docs/guide/` 抓取并转换为 GitHub 友好的 Markdown。",
+        "该目录由脚本自动从 `https://developer.fnnas.com` 抓取并转换为 GitHub 友好的 Markdown。",
         "",
         f"- 单文件合集: [../{ALL_DOCS_PATH.name}](../{ALL_DOCS_PATH.name})",
         "",
@@ -684,7 +773,8 @@ def write_docs_index(pages: list[Page]) -> None:
         "",
     ]
 
-    for section, section_pages in grouped.items():
+    for section in sorted(grouped, key=section_sort_key):
+        section_pages = grouped[section]
         lines.append(f"### {SECTION_LABELS.get(section, section)}")
         lines.append("")
         for page in section_pages:

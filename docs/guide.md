@@ -47,17 +47,17 @@
 
 ### 2. 开发工具
 
-- fnpack：应用打包工具
-- appcenter-cli：应用中心命令行工具
+- `fnpack`：应用打包工具
+- `appcenter-cli`：应用中心命令行工具
 
 ---
 
 ## 开始飞牛 fnOS 开发之旅
 
-- 阅读 快速开始 掌握开发测试流程
-- 查看 开发指南 理解应用架构
-- 学习 CLI 工具 提升开发效率
+- 阅读 [快速开始](quick-started/prerequisites.md) 掌握开发测试流程
+- 查看 [开发指南](core-concepts/framework.md) 理解应用架构
+- 学习 [CLI 工具](cli/fnpack.md) 提升开发效率
 
 ---
 
-- 下一页: [🚀　快速开始](category/快速开始.md)
+- 下一页: [快速开始](category/快速开始.md)

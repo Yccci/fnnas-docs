@@ -39,6 +39,6 @@ python scripts/sync_fnnas_docs.py
 
 ## 说明
 
-- 页面来源通过站点 sitemap 自动发现，新增页面通常会被自动纳入同步。
+- 页面来源从文档站导航和正文链接自动发现，覆盖开发文档、开放 API 和更新日志。官方 sitemap 已移除。
 - `docs/`、`assets/`、`ALL_DOCS.md` 都是生成产物，建议直接提交到仓库。
 - 源站存在 `fnnas.com` canonical 和 `developer.fnnas.com` 实际可下载地址混用的问题，脚本内部已经做了归一化处理。

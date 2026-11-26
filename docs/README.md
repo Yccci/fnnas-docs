@@ -1,40 +1,10 @@
 # 飞牛开发文档镜像
 
-该目录由脚本自动从 `https://developer.fnnas.com/docs/guide/` 抓取并转换为 GitHub 友好的 Markdown。
+该目录由脚本自动从 `https://developer.fnnas.com` 抓取并转换为 GitHub 友好的 Markdown。
 
 - 单文件合集: [../ALL_DOCS.md](../ALL_DOCS.md)
 
 ## 目录
-
-### 分类页
-
-- [🔧　CLI 开发工具](category/cli-开发工具.md)
-- [📘　开发指南](category/开发指南.md)
-- [🚀　快速开始](category/快速开始.md)
-- [🔄　文档更新日志](category/文档更新日志.md)
-
-### CLI 开发工具
-
-- [⚙️　appcenter-cli](cli/appcentercli.md)
-- [📦　fnpack](cli/fnpack.md)
-
-### 开发指南
-
-- [📚 【基础】应用入口](core-concepts/app-entry.md)
-- [🔥 【进阶】应用依赖关系](core-concepts/dependency.md)
-- [💻 【实战】Docker 应用构建](core-concepts/docker.md)
-- [📚 【基础】环境变量](core-concepts/environment-variables.md)
-- [📚 【基础】架构概述](core-concepts/framework.md)
-- [🔥 【进阶】登录认证](core-concepts/gateway-authentication.md)
-- [🔥 【进阶】统一网关注册](core-concepts/gateway-registration.md)
-- [📜 【规范】图标 Icon](core-concepts/icon.md)
-- [📚 【基础】Manifest](core-concepts/manifest.md)
-- [🔥 【进阶】中间件服务](core-concepts/middleware.md)
-- [💻 【实战】Native 应用构建](core-concepts/native.md)
-- [📚 【基础】应用权限](core-concepts/privilege.md)
-- [📚 【基础】应用资源](core-concepts/resource.md)
-- [🔥 【进阶】运行时环境](core-concepts/runtime.md)
-- [📚 【基础】用户向导](core-concepts/wizard.md)
 
 ### 入口
 
@@ -42,13 +12,58 @@
 
 ### 快速开始
 
-- [✨　创建应用](quick-started/create-application.md)
-- [📋　准备工作](quick-started/prerequisites.md)
-- [📤　上架应用](quick-started/publish-application.md)
-- [🧪　测试应用](quick-started/test-application.md)
+- [准备工作](quick-started/prerequisites.md)
+- [创建应用](quick-started/create-application.md)
+- [测试应用](quick-started/test-application.md)
+- [上架应用](quick-started/publish-application.md)
 
-### 文档更新日志
+### 开发指南
 
-- [20251216 更新日志](update-log/20251216.md)
-- [20251231 更新日志](update-log/20251231.md)
-- [20260509 更新日志](update-log/20260509.md)
+- [应用框架](core-concepts/framework.md)
+- [Manifest](core-concepts/manifest.md)
+- [环境变量](core-concepts/environment-variables.md)
+- [应用权限](core-concepts/privilege.md)
+- [应用资源](core-concepts/resource.md)
+- [应用入口](core-concepts/app-entry.md)
+- [index.cgi](core-concepts/index-cgi.md)
+- [统一网关](core-concepts/gateway-registration.md)
+- [用户向导](core-concepts/wizard.md)
+- [应用依赖](core-concepts/dependency.md)
+- [中间件服务](core-concepts/middleware.md)
+- [运行时环境](core-concepts/runtime.md)
+- [图标](core-concepts/icon.md)
+
+### 应用案例
+
+- [Native 应用案例](examples/native.md)
+- [Docker 应用案例](examples/docker.md)
+
+### 开发工具
+
+- [fnpack](cli/fnpack.md)
+- [appcenter-cli](cli/appcentercli.md)
+
+### 更新日志
+
+- [更新日志](update-log.md)
+
+### 开放 API
+
+- [概述](api/overview.md)
+- [调用方式](api/calling.md)
+- [平台配置](api/platform-config.md)
+- [授权与文件概览](api/authorization/overview.md)
+- [页面路由](api/page/routing.md)
+- [错误码](api/error-codes.md)
+- [页面交互](api/page/ui.md)
+- [应用共享授权路径](api/authorization/shared-access.md)
+- [用户个人授权路径](api/authorization/user-access.md)
+- [文件权限检查](api/authorization/file-acl.md)
+- [路径转换](api/authorization/path-convert.md)
+
+### 分类页
+
+- [快速开始](category/快速开始.md)
+- [开发指南](category/开发指南.md)
+- [应用案例](category/应用案例.md)
+- [开发工具](category/开发工具.md)
